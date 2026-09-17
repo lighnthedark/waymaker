@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Waymaker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a14;color:#e8e6f0;font-family:'Helvetica Neue',sans-serif;padding:16px}
+h1{font-size:28px;letter-spacing:0.05em;color:#FAC775;text-align:center;margin-bottom:4px}
+.sub{text-align:center;font-size:13px;color:rgba(232,230,240,0.5);margin-bottom:20px}
+.card{background:#0e0e1c;border:0.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(232,230,240,0.5);margin-bottom:10px}
+.how{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.step{background:#161628;border-radius:8px;padding:10px;font-size:13px;line-height:1.5;color:rgba(232,230,240,0.8)}
+.step strong{display:block;color:#7F77DD;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
+.levels{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+.lvl-btn{flex:1;max-width:110px;padding:10px 0;border-radius:8px;border:0.5px solid rgba(255,255,255,0.15);background:transparent;color:rgba(232,230,240,0.6);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.lvl-btn.on{border-color:#FAC775;background:rgba(250,199,117,0.1);color:#FAC775}
+#game-wrap{display:flex;justify-content:center;margin-bottom:16px}
+canvas{border:0.5px solid rgba(255,255,255,0.15);border-radius:8px;display:block;background:#0a0a14;touch-action:none}
+.controls{display:flex;gap:8px;margin-bottom:12px;justify-content:center}
+.btn{padding:10px 20px;border-radius:8px;border:0.5px solid rgba(255,255,255,0.2);background:transparent;color:#e8e6f0;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn.primary{background:#534AB7;border-color:#534AB7;color:#fff}
+.btn.primary:hover{background:#3C3489}
+.btn.gold{background:#FAC775;border-color:#FAC775;color:#1a1505}
+.btn:hover{background:rgba(255,255,255,0.08)}
+.blocks{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
+.bk{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:0.5px solid rgba(255,255,255,0.15);background:#161628;cursor:pointer;font-size:12px;color:rgba(232,230,240,0.8);transition:all .15s}
+.bk.sel{border-color:#7F77DD;background:#1a1830;color:#AFA9EC}
+.bk.lck{opacity:0.35;cursor:not-allowed}
+.dot{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.stats{display:flex;gap:16px;justify-content:center;font-size:13px;color:rgba(232,230,240,0.5);margin-bottom:8px;flex-wrap:wrap}
+.stats span{color:#e8e6f0;font-weight:500}
+#msg{text-align:center;font-size:13px;color:rgba(232,230,240,0.6);min-height:18px;margin-bottom:8px}
+#clear-box{display:none;text-align:center;margin-top:4px}
+#clear-box h3{color:#FAC775;font-size:16px;margin-bottom:10px}
+.clear-actions{display:flex;gap:8px;justify-content:center}
+</style>
+</head>
+<body>
+
+<h1>Waymaker</h1>
+<p class="sub">Green Eye Creative</p>
+
+<div class="card">
+<h2>How to play</h2>
+<div class="how">
+<div class="step"><strong>1. Place blocks</strong>Tap any empty cell on the grid to place a block before launch.</div>
+<div class="step"><strong>2. Drag to move</strong>Tap a placed block and drag it to reposition it anywhere.</div>
+<div class="step"><strong>3. Remove</strong>Tap a placed block without dragging to remove it.</div>
+<div class="step"><strong>4. Launch</strong>Hit Launch Ball and guide it to the gold star to win!</div>
+</div>
+</div>
+
+<div class="levels">
+<button class="lvl-btn on" id="lvl-0" onclick="loadLevel(0)">Level 1</button>
+<button class="lvl-btn" id="lvl-1" onclick="loadLevel(1)">Level 2</button>
+<button class="lvl-btn" id="lvl-2" onclick="loadLevel(2)">Level 3</button>
+</div>
+
+<div class="stats">
+<div>Blocks left: <span id="bl">3</span></div>
+<div>Score: <span id="sc">0</span></div>
+</div>
+
+<div class="blocks">
+<div class="bk sel" id="bk-normal" onclick="selBlock('normal')"><div class="dot" style="background:#378ADD"></div>Normal</div>
+<div class="bk" id="bk-bounce" onclick="selBlock('bounce')"><div class="dot" style="background:#1D9E75"></div>Power bounce</div>
+<div class="bk lck" id="bk-splitter" onclick="selBlock('splitter')"><div class="dot" style="background:#D85A30"></div>Splitter</div>
+<div class="bk lck" id="bk-boost" onclick="selBlock('boost')"><div class="dot" style="background:#BA7517"></div>Speed boost</div>
+</div>
+
+<div id="game-wrap">
+<canvas id="gc" width="300" height="460"></canvas>
+</div>
+
+<div class="controls">
+<button class="btn primary" id="ab" onclick="handleAction()">Launch ball</button>
+<button class="btn" onclick="resetGame()">Reset</button>
+</div>
+
+<div id="msg">Tap the grid to place your blocks then launch!</div>
+
+<div id="clear-box">
+<h3 id="clear-title">Level cleared!</h3>
+<div class="clear-actions">
+<button class="btn gold" id="next-btn" onclick="nextLevel()">Next level &rarr;</button>
+<button class="btn" onclick="resetGame()">Play again</button>
+</div>
+</div>
+
+<script>
+const cv=document.getElementById('gc'),ctx=cv.getContext('2d');
+const COLS=8,ROWS=13,HDR=44;
+const BC={normal:'#378ADD',bounce:'#1D9E75',splitter:'#D85A30',boost:'#BA7517'};
+const MAX_BALLS=3,BOOST_MULT=1.4,MAX_SPEED=6.2;
+
+// Each level: obstacles (obs, optionally spin:true for on/off spinning hazards),
+// goal, launch point, block budget, and which placeable block types are unlocked.
+const LEVELS=[
+  {
+    obs:[{c:2,r:5},{c:5,r:5},{c:3,r:7},{c:6,r:7},{c:1,r:9},{c:4,r:9},{c:6,r:10}],
+    goal:{c:4,r:1},launch:{c:3,r:12},maxB:3,
+    unlocked:['normal','bounce']
+  },
+  {
+    obs:[{c:1,r:4},{c:6,r:4},{c:3,r:6,spin:true},{c:2,r:8},{c:5,r:8},{c:4,r:10,spin:true},{c:6,r:11}],
+    goal:{c:4,r:1},launch:{c:3,r:12},maxB:3,
+    unlocked:['normal','bounce','splitter']
+  },
+  {
+    obs:[{c:2,r:3},{c:5,r:3},{c:1,r:5,spin:true},{c:6,r:5,spin:true},{c:3,r:7},{c:4,r:7},{c:2,r:9,spin:true},{c:5,r:9},{c:3,r:11},{c:5,r:11}],
+    goal:{c:4,r:1},launch:{c:3,r:12},maxB:4,
+    unlocked:['normal','bounce','splitter','boost']
+  }
+];
+
+let W,H,CW,CH;
+function resize(){
+  W=Math.min(window.innerWidth-32,320);
+  H=Math.round(W*1.45);
+  cv.width=W;cv.height=H;
+  CW=Math.floor(W/COLS);
+  CH=Math.floor((H-HDR)/ROWS);
+}
+resize();
+window.addEventListener('resize',()=>{resize();draw();});
+
+let curLevel=0,LV=LEVELS[0];
+let OBS=[],GOAL_C,GOAL_R,LAUNCH_C,LAUNCH_R,maxB;
+let selType='normal',placed=[],state='placing';
+let balls=[],animId=null,score=0;
+let dragIdx=-1,isDragging=false,dragStartCX=0,dragStartCY=0,dragCX=0,dragCY=0;
+
+function loadLevel(i){
+  curLevel=i;LV=LEVELS[i];
+  OBS=LV.obs.map(o=>({...o,spinOn:false,timer:Math.floor(Math.random()*60),
+    onDur:60+Math.floor(Math.random()*90),offDur:80+Math.floor(Math.random()*140)}));
+  GOAL_C=LV.goal.c;GOAL_R=LV.goal.r;LAUNCH_C=LV.launch.c;LAUNCH_R=LV.launch.r;maxB=LV.maxB;
+  for(let k=0;k<3;k++)document.getElementById('lvl-'+k).classList.toggle('on',k===i);
+  ['normal','bounce','splitter','boost'].forEach(t=>{
+    const el=document.getElementById('bk-'+t),unlocked=LV.unlocked.includes(t);
+    el.classList.toggle('lck',!unlocked);
+  });
+  if(!LV.unlocked.includes(selType))selType='normal';
+  resetGame();
+}
+
+function toCanvas(clientX,clientY){
+  const r=cv.getBoundingClientRect();
+  return{cx:(clientX-r.left)*(W/r.width),cy:(clientY-r.top)*(H/r.height)};
+}
+function toGrid(cx,cy){return{c:Math.floor(cx/CW),r:Math.floor((cy-HDR)/CH)};}
+function validCell(c,r){return c>=0&&c<COLS&&r>=0&&r<ROWS;}
+function isOcc(c,r,skip=-1){
+  if(!validCell(c,r))return true;
+  if(c===GOAL_C&&r===GOAL_R)return true;
+  if(c===LAUNCH_C&&r===LAUNCH_R)return true;
+  if(OBS.some(o=>o.c===c&&o.r===r))return true;
+  return placed.some((b,i)=>i!==skip&&b.c===c&&b.r===r);
+}
+function blockAt(c,r){return placed.findIndex(b=>b.c===c&&b.r===r);}
+function gCenter(c,r){return{x:c*CW+CW/2,y:HDR+r*CH+CH/2};}
+
+function selBlock(t){
+  if(state!=='placing'||!LV.unlocked.includes(t))return;
+  selType=t;
+  ['normal','bounce','splitter','boost'].forEach(x=>document.getElementById('bk-'+x).classList.toggle('sel',x===t));
+}
+
+cv.addEventListener('mousedown',e=>{e.preventDefault();onDown(e.clientX,e.clientY);});
+cv.addEventListener('touchstart',e=>{e.preventDefault();onDown(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+function onDown(clientX,clientY){
+  if(state!=='placing')return;
+  const{cx,cy}=toCanvas(clientX,clientY);
+  if(cy<HDR)return;
+  const{c,r}=toGrid(cx,cy);
+  const idx=blockAt(c,r);
+  if(idx>=0){dragIdx=idx;isDragging=false;dragStartCX=cx;dragStartCY=cy;dragCX=cx;dragCY=cy;}
+}
+
+cv.addEventListener('mousemove',e=>onMove(e.clientX,e.clientY));
+cv.addEventListener('touchmove',e=>{e.preventDefault();onMove(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+function onMove(clientX,clientY){
+  if(state!=='placing'||dragIdx<0)return;
+  const{cx,cy}=toCanvas(clientX,clientY);
+  const dx=Math.abs(cx-dragStartCX),dy=Math.abs(cy-dragStartCY);
+  if(!isDragging&&(dx>5||dy>5))isDragging=true;
+  if(isDragging){dragCX=cx;dragCY=cy;draw();}
+}
+
+cv.addEventListener('mouseup',e=>onUp(e.clientX,e.clientY));
+cv.addEventListener('touchend',e=>onUp(e.changedTouches[0].clientX,e.changedTouches[0].clientY));
+function onUp(clientX,clientY){
+  if(state!=='placing')return;
+  const{cx,cy}=toCanvas(clientX,clientY);
+  if(dragIdx>=0&&isDragging){
+    const{c,r}=toGrid(cx,cy);
+    if(!isOcc(c,r,dragIdx)){placed[dragIdx].c=c;placed[dragIdx].r=r;}
+    dragIdx=-1;isDragging=false;updateUI();return;
+  }
+  if(dragIdx>=0&&!isDragging){placed.splice(dragIdx,1);dragIdx=-1;isDragging=false;updateUI();return;}
+  dragIdx=-1;isDragging=false;
+  if(cy<HDR)return;
+  const{c,r}=toGrid(cx,cy);
+  if(!validCell(c,r)||isOcc(c,r))return;
+  if(placed.length>=maxB){document.getElementById('msg').textContent='No blocks left! Tap a block to remove it.';return;}
+  placed.push({c,r,type:selType,used:false});
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById('bl').textContent=maxB-placed.length;
+  if(state==='placing')document.getElementById('msg').textContent='Tap the grid to place your blocks then launch!';
+  draw();
+}
+
+function handleAction(){if(state==='placing')launch();}
+function launch(){
+  state='running';
+  document.getElementById('msg').textContent='Ball in play!';
+  document.getElementById('clear-box').style.display='none';
+  placed.forEach(b=>b.used=false);
+  const sp=gCenter(LAUNCH_C,LAUNCH_R);
+  balls=[{x:sp.x,y:sp.y,vx:0.9,vy:-2.5,r:7,trail:[]}];
+  animate();
+}
+function animate(){animId=requestAnimationFrame(animate);update();draw();}
+
+function speedClamp(b){
+  const sp=Math.hypot(b.vx,b.vy);
+  if(sp>MAX_SPEED){b.vx=b.vx/sp*MAX_SPEED;b.vy=b.vy/sp*MAX_SPEED;}
+}
+
+function update(){
+  // Spin obstacles flip on/off on their own irregular timers, so the
+  // hazard is intermittent rather than a constant spin.
+  OBS.forEach(o=>{
+    if(!o.spin)return;
+    o.timer++;
+    const dur=o.spinOn?o.onDur:o.offDur;
+    if(o.timer>=dur){
+      o.spinOn=!o.spinOn;o.timer=0;
+      o.onDur=50+Math.floor(Math.random()*100);
+      o.offDur=70+Math.floor(Math.random()*160);
+    }
+  });
+
+  if(!balls.length)return;
+  const won=[];const survivors=[];
+  balls.forEach(ball=>{
+    ball.trail.push({x:ball.x,y:ball.y});
+    if(ball.trail.length>16)ball.trail.shift();
+    ball.x+=ball.vx;ball.y+=ball.vy;
+    if(ball.x-ball.r<0){ball.x=ball.r;ball.vx=Math.abs(ball.vx);}
+    if(ball.x+ball.r>W){ball.x=W-ball.r;ball.vx=-Math.abs(ball.vx);}
+    if(ball.y-ball.r<HDR){ball.y=HDR+ball.r;ball.vy=Math.abs(ball.vy);}
+    if(ball.y+ball.r>H)return; // lost, don't keep
+
+    const gc=Math.floor(ball.x/CW),gr=Math.floor((ball.y-HDR)/CH);
+    if(gc===GOAL_C&&gr===GOAL_R){won.push(ball);return;}
+
+    const extra=[];
+    OBS.forEach(o=>{
+      const ox=o.c*CW,oy=HDR+o.r*CH;
+      if(ball.x+ball.r>ox&&ball.x-ball.r<ox+CW&&ball.y+ball.r>oy&&ball.y-ball.r<oy+CH){
+        const oL=ball.x+ball.r-ox,oR=ox+CW-(ball.x-ball.r),oT=ball.y+ball.r-oy,oB=oy+CH-(ball.y-ball.r);
+        const mn=Math.min(oL,oR,oT,oB);
+        if(mn===oL){ball.x=ox-ball.r;ball.vx=-Math.abs(ball.vx);}
+        else if(mn===oR){ball.x=ox+CW+ball.r;ball.vx=Math.abs(ball.vx);}
+        else if(mn===oT){ball.y=oy-ball.r;ball.vy=-Math.abs(ball.vy);}
+        else{ball.y=oy+CH+ball.r;ball.vy=Math.abs(ball.vy);}
+        if(o.spin&&o.spinOn){
+          const ang=(Math.random()<0.5?1:-1)*(0.6+Math.random()*0.8);
+          const cos=Math.cos(ang),sin=Math.sin(ang);
+          const nvx=ball.vx*cos-ball.vy*sin,nvy=ball.vx*sin+ball.vy*cos;
+          ball.vx=nvx*1.15;ball.vy=nvy*1.15;
+          speedClamp(ball);
+        }
+      }
+    });
+    placed.forEach(b=>{
+      const ox=b.c*CW,oy=HDR+b.r*CH;
+      if(ball.x+ball.r>ox&&ball.x-ball.r<ox+CW&&ball.y+ball.r>oy&&ball.y-ball.r<oy+CH){
+        const oL=ball.x+ball.r-ox,oR=ox+CW-(ball.x-ball.r),oT=ball.y+ball.r-oy,oB=oy+CH-(ball.y-ball.r);
+        const mn=Math.min(oL,oR,oT,oB),sp=b.type==='bounce'?1.3:1.0;
+        if(mn===oL){ball.x=ox-ball.r;ball.vx=-Math.abs(ball.vx)*sp;}
+        else if(mn===oR){ball.x=ox+CW+ball.r;ball.vx=Math.abs(ball.vx)*sp;}
+        else if(mn===oT){ball.y=oy-ball.r;ball.vy=-Math.abs(ball.vy)*sp;}
+        else{ball.y=oy+CH+ball.r;ball.vy=Math.abs(ball.vy)*sp;}
+        if(b.type==='boost'){ball.vx*=BOOST_MULT;ball.vy*=BOOST_MULT;speedClamp(ball);}
+        if(b.type==='splitter'&&!b.used&&balls.length+survivors.length+extra.length<MAX_BALLS){
+          b.used=true;
+          extra.push({x:ball.x,y:ball.y,vx:-ball.vy*0.9,vy:ball.vx*0.9,r:7,trail:[]});
+        }
+      }
+    });
+    survivors.push(ball);
+    extra.forEach(e=>survivors.push(e));
+  });
+
+  if(won.length){
+    score+=100;document.getElementById('sc').textContent=score;
+    balls=[];endGame(true);return;
+  }
+  balls=survivors;
+  if(!balls.length){endGame(false);return;}
+}
+
+function endGame(w){
+  cancelAnimationFrame(animId);state='done';
+  if(w){
+    document.getElementById('msg').textContent='You reached the star!';
+    const box=document.getElementById('clear-box'),nextBtn=document.getElementById('next-btn');
+    document.getElementById('clear-title').textContent=curLevel<LEVELS.length-1?'Level cleared!':'Waymaker cleared — nice work!';
+    nextBtn.style.display=curLevel<LEVELS.length-1?'inline-block':'none';
+    box.style.display='block';
+  }else{
+    document.getElementById('msg').textContent='Ball lost! Hit Reset to try again.';
+  }
+}
+function nextLevel(){if(curLevel<LEVELS.length-1)loadLevel(curLevel+1);}
+function resetGame(){
+  cancelAnimationFrame(animId);balls=[];placed=[];state='placing';dragIdx=-1;isDragging=false;
+  document.getElementById('clear-box').style.display='none';
+  updateUI();
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a14';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=0.5;
+  for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*CW,HDR);ctx.lineTo(c*CW,H);ctx.stroke();}
+  for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,HDR+r*CH);ctx.lineTo(W,HDR+r*CH);ctx.stroke();}
+  ctx.fillStyle='rgba(255,255,255,0.07)';ctx.fillRect(0,0,W,HDR);
+  ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('WAYMAKER — LEVEL '+(curLevel+1),W/2,27);
+  const gp=gCenter(GOAL_C,GOAL_R);
+  ctx.fillStyle='#FAC775';ctx.beginPath();
+  for(let i=0;i<5;i++){const a=(i*4*Math.PI/5)-Math.PI/2;const px=gp.x+10*Math.cos(a),py=gp.y+10*Math.sin(a);i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
+  ctx.closePath();ctx.fill();
+  OBS.forEach(o=>{
+    const ox=o.c*CW,oy=HDR+o.r*CH;
+    if(o.spin){
+      ctx.save();
+      ctx.translate(ox+CW/2,oy+CH/2);
+      if(o.spinOn)ctx.rotate((o.timer/o.onDur)*Math.PI*2);
+      ctx.fillStyle=o.spinOn?'#3a1e1e':'#1e1e2e';
+      ctx.strokeStyle=o.spinOn?'#D85A30':'rgba(255,255,255,0.15)';
+      ctx.lineWidth=o.spinOn?1.5:0.5;
+      ctx.beginPath();ctx.roundRect(-(CW-4)/2,-(CH-4)/2,CW-4,CH-4,3);ctx.fill();ctx.stroke();
+      ctx.strokeStyle=o.spinOn?'#FAC775':'rgba(255,255,255,0.2)';
+      ctx.beginPath();ctx.moveTo(-(CW-8)/2,0);ctx.lineTo((CW-8)/2,0);
+      ctx.moveTo(0,-(CH-8)/2);ctx.lineTo(0,(CH-8)/2);ctx.stroke();
+      ctx.restore();
+    }else{
+      ctx.fillStyle='#1e1e2e';ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.roundRect(ox+2,oy+2,CW-4,CH-4,3);ctx.fill();ctx.stroke();
+    }
+  });
+  placed.forEach((b,i)=>{
+    const drag=i===dragIdx&&isDragging;
+    const bx=drag?dragCX-CW/2:b.c*CW;
+    const by=drag?dragCY-CH/2:HDR+b.r*CH;
+    ctx.globalAlpha=drag?0.65:1;
+    ctx.fillStyle=BC[b.type]+'33';ctx.strokeStyle=BC[b.type];ctx.lineWidth=drag?2:1.5;
+    ctx.beginPath();ctx.roundRect(bx+2,by+2,CW-4,CH-4,3);ctx.fill();ctx.stroke();
+    ctx.globalAlpha=1;
+    ctx.fillStyle=BC[b.type];ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    const sym=b.type==='bounce'?'+':b.type==='splitter'?'Y':b.type==='boost'?'»':'';
+    if(sym)ctx.fillText(sym,bx+CW/2,by+CH/2+4);
+  });
+  const lp=gCenter(LAUNCH_C,LAUNCH_R);
+  ctx.fillStyle='rgba(127,119,221,0.2)';ctx.beginPath();ctx.arc(lp.x,lp.y,7,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#7F77DD';ctx.lineWidth=1;ctx.stroke();
+  balls.forEach(ball=>{
+    ball.trail.forEach((t,i)=>{ctx.fillStyle=`rgba(127,119,221,${(i/ball.trail.length)*0.35})`;ctx.beginPath();ctx.arc(t.x,t.y,ball.r*(i/ball.trail.length)*0.8,0,Math.PI*2);ctx.fill();});
+    ctx.fillStyle='#7F77DD';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#AFA9EC';ctx.lineWidth=1.5;ctx.stroke();
+  });
+}
+
+loadLevel(0);
+</script>
+</body>
+</html>
