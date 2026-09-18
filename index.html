@@ -14,8 +14,8 @@ h1{font-size:28px;letter-spacing:0.05em;color:#FAC775;text-align:center;margin-b
 .how{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .step{background:#161628;border-radius:8px;padding:10px;font-size:13px;line-height:1.5;color:rgba(232,230,240,0.8)}
 .step strong{display:block;color:#7F77DD;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
-.levels{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
-.lvl-btn{flex:1;max-width:110px;padding:10px 0;border-radius:8px;border:0.5px solid rgba(255,255,255,0.15);background:transparent;color:rgba(232,230,240,0.6);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.levels{display:flex;gap:6px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+.lvl-btn{flex:0 0 60px;padding:8px 0;border-radius:8px;border:0.5px solid rgba(255,255,255,0.15);background:transparent;color:rgba(232,230,240,0.6);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
 .lvl-btn.on{border-color:#FAC775;background:rgba(250,199,117,0.1);color:#FAC775}
 #game-wrap{display:flex;justify-content:center;margin-bottom:16px}
 canvas{border:0.5px solid rgba(255,255,255,0.15);border-radius:8px;display:block;background:#0a0a14;touch-action:none}
@@ -53,11 +53,7 @@ canvas{border:0.5px solid rgba(255,255,255,0.15);border-radius:8px;display:block
 </div>
 </div>
 
-<div class="levels">
-<button class="lvl-btn on" id="lvl-0" onclick="loadLevel(0)">Level 1</button>
-<button class="lvl-btn" id="lvl-1" onclick="loadLevel(1)">Level 2</button>
-<button class="lvl-btn" id="lvl-2" onclick="loadLevel(2)">Level 3</button>
-</div>
+<div class="levels" id="lvl-tabs"></div>
 
 <div class="stats">
 <div>Blocks left: <span id="bl">3</span></div>
@@ -95,23 +91,55 @@ const cv=document.getElementById('gc'),ctx=cv.getContext('2d');
 const COLS=8,ROWS=13,HDR=44;
 const BC={normal:'#378ADD',bounce:'#1D9E75',splitter:'#D85A30',boost:'#BA7517'};
 const MAX_BALLS=3,BOOST_MULT=1.4,MAX_SPEED=6.2;
+const GOAL={c:4,r:1},LAUNCH={c:3,r:12};
 
 // Each level: obstacles (obs, optionally spin:true for on/off spinning hazards),
-// goal, launch point, block budget, and which placeable block types are unlocked.
+// block budget, and which placeable block types are unlocked.
+// goal/launch default to GOAL/LAUNCH above unless a level overrides them.
 const LEVELS=[
   {
     obs:[{c:2,r:5},{c:5,r:5},{c:3,r:7},{c:6,r:7},{c:1,r:9},{c:4,r:9},{c:6,r:10}],
-    goal:{c:4,r:1},launch:{c:3,r:12},maxB:3,
+    maxB:3,
     unlocked:['normal','bounce']
   },
   {
     obs:[{c:1,r:4},{c:6,r:4},{c:3,r:6,spin:true},{c:2,r:8},{c:5,r:8},{c:4,r:10,spin:true},{c:6,r:11}],
-    goal:{c:4,r:1},launch:{c:3,r:12},maxB:3,
+    maxB:3,
     unlocked:['normal','bounce','splitter']
   },
   {
     obs:[{c:2,r:3},{c:5,r:3},{c:1,r:5,spin:true},{c:6,r:5,spin:true},{c:3,r:7},{c:4,r:7},{c:2,r:9,spin:true},{c:5,r:9},{c:1,r:11},{c:5,r:11}],
-    goal:{c:4,r:1},launch:{c:3,r:12},maxB:4,
+    maxB:4,
+    unlocked:['normal','bounce','splitter','boost']
+  },
+  {
+    obs:[{c:2,r:2},{c:5,r:2},{c:1,r:4,spin:true},{c:6,r:4,spin:true},{c:3,r:6},{c:4,r:6},{c:2,r:8},{c:5,r:8,spin:true},{c:1,r:10},{c:6,r:10}],
+    maxB:4,
+    unlocked:['normal','bounce','splitter','boost']
+  },
+  {
+    obs:[{c:3,r:2},{c:1,r:3},{c:6,r:3,spin:true},{c:4,r:5},{c:2,r:5,spin:true},{c:5,r:7,spin:true},{c:1,r:7},{c:3,r:9},{c:6,r:9},{c:2,r:10,spin:true},{c:5,r:10}],
+    maxB:4,
+    unlocked:['normal','bounce','splitter','boost']
+  },
+  {
+    obs:[{c:1,r:2},{c:6,r:2},{c:3,r:3,spin:true},{c:4,r:3,spin:true},{c:2,r:5},{c:5,r:5},{c:1,r:6,spin:true},{c:6,r:6,spin:true},{c:3,r:8},{c:4,r:8},{c:2,r:9,spin:true},{c:5,r:9,spin:true},{c:1,r:10},{c:6,r:10}],
+    maxB:5,
+    unlocked:['normal','bounce','splitter','boost']
+  },
+  {
+    obs:[{c:2,r:2,spin:true},{c:5,r:2,spin:true},{c:1,r:3},{c:6,r:3},{c:3,r:4},{c:4,r:4},{c:2,r:6,spin:true},{c:5,r:6},{c:1,r:7},{c:6,r:7,spin:true},{c:3,r:9},{c:4,r:9},{c:2,r:10,spin:true},{c:5,r:10,spin:true}],
+    maxB:5,
+    unlocked:['normal','bounce','splitter','boost']
+  },
+  {
+    obs:[{c:1,r:2},{c:4,r:2,spin:true},{c:6,r:2},{c:2,r:3,spin:true},{c:5,r:3},{c:3,r:5},{c:1,r:6,spin:true},{c:6,r:6,spin:true},{c:4,r:7},{c:2,r:8},{c:5,r:8,spin:true},{c:3,r:9,spin:true},{c:1,r:10},{c:6,r:10}],
+    maxB:5,
+    unlocked:['normal','bounce','splitter','boost']
+  },
+  {
+    obs:[{c:2,r:2,spin:true},{c:4,r:2},{c:6,r:2,spin:true},{c:1,r:3},{c:5,r:3,spin:true},{c:3,r:4,spin:true},{c:2,r:5},{c:6,r:5},{c:4,r:6,spin:true},{c:1,r:7,spin:true},{c:5,r:7},{c:3,r:8},{c:2,r:9,spin:true},{c:6,r:9,spin:true},{c:4,r:10}],
+    maxB:5,
     unlocked:['normal','bounce','splitter','boost']
   }
 ];
@@ -133,12 +161,26 @@ let selType='normal',placed=[],state='placing';
 let balls=[],animId=null,score=0;
 let dragIdx=-1,isDragging=false,dragStartCX=0,dragStartCY=0,dragCX=0,dragCY=0;
 
+function buildLevelTabs(){
+  const wrap=document.getElementById('lvl-tabs');
+  wrap.innerHTML='';
+  LEVELS.forEach((_,i)=>{
+    const b=document.createElement('button');
+    b.className='lvl-btn'+(i===0?' on':'');
+    b.id='lvl-'+i;
+    b.textContent='Lv '+(i+1);
+    b.onclick=()=>loadLevel(i);
+    wrap.appendChild(b);
+  });
+}
+
 function loadLevel(i){
   curLevel=i;LV=LEVELS[i];
   OBS=LV.obs.map(o=>({...o,spinOn:false,timer:Math.floor(Math.random()*60),
     onDur:60+Math.floor(Math.random()*90),offDur:80+Math.floor(Math.random()*140)}));
-  GOAL_C=LV.goal.c;GOAL_R=LV.goal.r;LAUNCH_C=LV.launch.c;LAUNCH_R=LV.launch.r;maxB=LV.maxB;
-  for(let k=0;k<3;k++)document.getElementById('lvl-'+k).classList.toggle('on',k===i);
+  const g=LV.goal||GOAL,l=LV.launch||LAUNCH;
+  GOAL_C=g.c;GOAL_R=g.r;LAUNCH_C=l.c;LAUNCH_R=l.r;maxB=LV.maxB;
+  for(let k=0;k<LEVELS.length;k++)document.getElementById('lvl-'+k).classList.toggle('on',k===i);
   ['normal','bounce','splitter','boost'].forEach(t=>{
     const el=document.getElementById('bk-'+t),unlocked=LV.unlocked.includes(t);
     el.classList.toggle('lck',!unlocked);
@@ -379,6 +421,7 @@ function draw(){
   });
 }
 
+buildLevelTabs();
 loadLevel(0);
 </script>
 </body>
