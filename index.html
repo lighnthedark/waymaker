@@ -30,6 +30,9 @@ canvas{border:0.5px solid rgba(255,255,255,0.15);border-radius:8px;display:block
 .bk.sel{border-color:#7F77DD;background:#1a1830;color:#AFA9EC}
 .bk.lck{opacity:0.35;cursor:not-allowed}
 .dot{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.color-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+.swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.swatch.sel{border-color:#fff;transform:scale(1.15)}
 .stats{display:flex;gap:16px;justify-content:center;font-size:13px;color:rgba(232,230,240,0.5);margin-bottom:8px;flex-wrap:wrap}
 .stats span{color:#e8e6f0;font-weight:500}
 #msg{text-align:center;font-size:13px;color:rgba(232,230,240,0.6);min-height:18px;margin-bottom:8px}
@@ -67,6 +70,8 @@ canvas{border:0.5px solid rgba(255,255,255,0.15);border-radius:8px;display:block
 <div class="bk lck" id="bk-boost" onclick="selBlock('boost')"><div class="dot" style="background:#BA7517"></div>Speed boost</div>
 </div>
 
+<div class="color-row" id="color-row"></div>
+
 <div id="game-wrap">
 <canvas id="gc" width="300" height="460"></canvas>
 </div>
@@ -92,6 +97,28 @@ const COLS=8,ROWS=13,HDR=44;
 const BC={normal:'#378ADD',bounce:'#1D9E75',splitter:'#D85A30',boost:'#BA7517'};
 const MAX_BALLS=3,BOOST_MULT=1.4,MAX_SPEED=6.2;
 const GOAL={c:4,r:1},LAUNCH={c:3,r:12};
+const BALL_COLORS=['#7F77DD','#378ADD','#1D9E75','#D85A30','#FAC775','#FF6B9D'];
+let ballColor=BALL_COLORS[0];
+function hexToRgb(hex){
+  const n=parseInt(hex.slice(1),16);
+  return{r:(n>>16)&255,g:(n>>8)&255,b:n&255};
+}
+function buildColorRow(){
+  const wrap=document.getElementById('color-row');
+  wrap.innerHTML='';
+  BALL_COLORS.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='swatch'+(c===ballColor?' sel':'');
+    d.style.background=c;
+    d.onclick=()=>{
+      ballColor=c;
+      [...wrap.children].forEach(x=>x.classList.remove('sel'));
+      d.classList.add('sel');
+      draw();
+    };
+    wrap.appendChild(d);
+  });
+}
 
 // Each level: obstacles (obs, optionally spin:true for on/off spinning hazards),
 // block budget, and which placeable block types are unlocked.
@@ -414,14 +441,16 @@ function draw(){
   const lp=gCenter(LAUNCH_C,LAUNCH_R);
   ctx.fillStyle='rgba(127,119,221,0.2)';ctx.beginPath();ctx.arc(lp.x,lp.y,7,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle='#7F77DD';ctx.lineWidth=1;ctx.stroke();
+  const bcRgb=hexToRgb(ballColor);
   balls.forEach(ball=>{
-    ball.trail.forEach((t,i)=>{ctx.fillStyle=`rgba(127,119,221,${(i/ball.trail.length)*0.35})`;ctx.beginPath();ctx.arc(t.x,t.y,ball.r*(i/ball.trail.length)*0.8,0,Math.PI*2);ctx.fill();});
-    ctx.fillStyle='#7F77DD';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#AFA9EC';ctx.lineWidth=1.5;ctx.stroke();
+    ball.trail.forEach((t,i)=>{ctx.fillStyle=`rgba(${bcRgb.r},${bcRgb.g},${bcRgb.b},${(i/ball.trail.length)*0.35})`;ctx.beginPath();ctx.arc(t.x,t.y,ball.r*(i/ball.trail.length)*0.8,0,Math.PI*2);ctx.fill();});
+    ctx.fillStyle=ballColor;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=1.5;ctx.stroke();
   });
 }
 
 buildLevelTabs();
+buildColorRow();
 loadLevel(0);
 </script>
 </body>
